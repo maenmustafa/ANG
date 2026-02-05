@@ -1,0 +1,329 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANG Hub | SLES Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; overflow: hidden; font-size: 11px; }
+        .tab-btn { padding: 0.5rem 1rem; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { color: #004D60; border-bottom-color: #F2A900; }
+        .tab-content { display: none; height: calc(100vh - 140px); overflow-y: auto; padding: 1.25rem; }
+        .tab-content.active { display: block; }
+        .card { background: white; border-radius: 0.5rem; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .status-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        aside { border-right: 1px solid #003B4A; box-shadow: 10px 0 30px rgba(0,0,0,0.15); min-width: 240px; }
+        .part-row input { font-size: 10px; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "recharts": "https://esm.sh/recharts@^3.7.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="flex flex-col md:flex-row h-screen">
+
+    <aside class="w-full md:w-60 bg-[#004D60] text-white flex flex-col z-50">
+        <div class="p-4 border-b border-[#006680] text-center">
+            <div class="bg-white p-2 rounded-lg mb-3"><img src="https://www.an-group.one/wp-content/uploads/2025/08/ANG-Logo-International-1-300x133.png" class="w-full h-auto"></div>
+            <h1 class="text-[8px] font-black tracking-[0.2em] uppercase opacity-70">SLES Enterprise Hub</h1>
+        </div>
+        <div class="p-3 flex-1 overflow-y-auto">
+            <div id="registry-list" class="space-y-1"></div>
+        </div>
+        <div class="p-3 bg-black/10 text-[7px] text-center font-bold text-teal-300 opacity-50 uppercase tracking-widest leading-relaxed">
+            PRODUCED BY AN-GROUP ONE<br>Maen Abu-Tanabanjeh
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-50 relative">
+        <div id="agent-header" class="bg-white border-b px-5 py-2 hidden flex justify-between items-center shadow-sm">
+            <div class="flex items-center gap-4">
+                <div>
+                    <h2 id="srv-name" class="text-sm font-black text-slate-800 tracking-tight leading-none mb-0.5">--</h2>
+                    <div class="flex items-center gap-1.5"><span id="status-dot-header" class="w-1.5 h-1.5 rounded-full bg-slate-300"></span><p id="srv-id" class="text-slate-400 text-[8px] font-bold uppercase">--</p></div>
+                </div>
+                
+                <div class="hidden lg:flex items-center gap-2 bg-slate-50 border px-2 py-1 rounded-full shadow-inner ml-4">
+                    <div class="flex gap-1">
+                        <button id="poll-resume" onclick="setPollState('running')" class="refresh-pill p-1 rounded-full hover:bg-emerald-100 text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+                        <button id="poll-pause" onclick="setPollState('paused')" class="refresh-pill p-1 rounded-full hover:bg-amber-100 text-amber-600"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+                        <button id="poll-stop" onclick="setPollState('stopped')" class="refresh-pill p-1 rounded-full hover:bg-red-100 text-red-600"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg></button>
+                    </div>
+                    <div class="h-4 w-px bg-slate-200 mx-1"></div>
+                    <select id="poll-interval" onchange="updatePollInterval()" class="bg-transparent text-[9px] font-black uppercase text-slate-500 outline-none"><option value="60000">1 Min</option><option value="300000">5 Mins</option></select>
+                    <div id="poll-countdown" class="text-[8px] font-mono text-slate-400 min-w-[30px] text-center">--</div>
+                </div>
+            </div>
+
+            <div class="flex bg-slate-100 rounded-lg p-0.5">
+                <button onclick="switchSubTab('overview')" id="tab-btn-overview" class="tab-btn active rounded-md">Overview</button>
+                <button onclick="switchSubTab('info')" id="tab-btn-info" class="tab-btn rounded-md">Server Info</button>
+                <button onclick="switchSubTab('files')" id="tab-btn-files" class="tab-btn rounded-md">File Manager</button>
+                <button onclick="switchSubTab('tune')" id="tab-btn-tune" class="tab-btn rounded-md text-emerald-700">Tune SLES</button>
+                <button onclick="switchSubTab('config')" id="tab-btn-config" class="tab-btn rounded-md">Config</button>
+            </div>
+        </div>
+
+        <div id="placeholder-view" class="flex-1 flex flex-col items-center justify-center text-slate-300 font-black uppercase tracking-widest text-[9px]">Select a Node</div>
+
+        <!-- Tab Content Areas -->
+        <div id="tab-overview" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                <div class="card p-3 border-t-4 border-red-500"><p class="text-[8px] font-black text-slate-400 uppercase">Available RAM</p><h3 id="stat-mem" class="text-lg font-black text-slate-700">--</h3></div>
+                <div class="card p-3 border-t-4 border-orange-500"><p class="text-[8px] font-black text-slate-400 uppercase">Swap Usage</p><h3 id="stat-swap" class="text-lg font-black text-slate-700">--</h3></div>
+                <div class="card p-3 border-t-4 border-emerald-500"><p class="text-[8px] font-black text-slate-400 uppercase">Status</p><h3 id="stat-oom" class="text-xs font-black uppercase">--</h3></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="card p-4"><h3 class="text-[9px] font-black uppercase text-[#004D60] mb-3">Storage Health</h3><div id="overview-disks" class="space-y-4"></div></div>
+                <div class="card overflow-hidden">
+                    <table class="w-full text-left font-bold text-[10px]"><thead class="bg-slate-50 border-b"><tr><th class="px-4 py-2">PID</th><th class="px-4 py-2">Process</th><th class="px-4 py-2 text-center">RAM (GB)</th><th class="px-4 py-2 text-right">Action</th></tr></thead><tbody id="proc-table" class="divide-y divide-slate-100"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-info" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="card p-4"><h3 class="text-[9px] font-black uppercase text-[#004D60] mb-3">Enterprise Stack</h3><div id="info-stack" class="space-y-1.5 font-bold"></div></div>
+                <div class="card p-4"><h3 class="text-[9px] font-black uppercase text-[#004D60] mb-3">CPU Topology</h3><div id="info-cpu" class="space-y-1.5 font-bold"></div></div>
+                <div id="info-hostnamectl" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+        </div>
+
+        <div id="tab-files" class="tab-content">
+            <div class="card p-2 flex gap-2 bg-white mb-3 shadow-sm items-center">
+                <button onclick="navigateUp()" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-[#004D60]">Up</button>
+                <input id="current-path" type="text" class="flex-1 bg-slate-50 border-none rounded-lg px-3 py-1.5 font-mono text-[10px] outline-none" value="/">
+                <button onclick="ls(document.getElementById('current-path').value)" class="bg-[#004D60] text-white px-5 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest">Browse</button>
+            </div>
+            <div class="card overflow-hidden"><table class="w-full text-left"><tbody id="file-table" class="divide-y divide-slate-100 font-bold"></tbody></table></div>
+        </div>
+
+        <div id="tab-tune" class="tab-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xs font-black uppercase text-emerald-700 tracking-widest">SLES 15 SAP Optimization Engine</h3>
+                <div class="flex gap-2">
+                    <button onclick="sendTask('scan_tune')" class="bg-[#004D60] text-white px-3 py-1.5 rounded font-black uppercase text-[8px]">Scan</button>
+                    <button onclick="sendTask('apply_tune', {}, 'Apply optimizations?')" class="bg-emerald-600 text-white px-3 py-1.5 rounded font-black uppercase text-[8px]">Modify</button>
+                    <button onclick="sendTask('revert_tune', {}, 'Revert systems?')" class="bg-red-500 text-white px-3 py-1.5 rounded font-black uppercase text-[8px]">Revert</button>
+                </div>
+            </div>
+            <div id="tune-wait" class="hidden p-3 bg-emerald-50 text-emerald-700 rounded mb-4 animate-pulse text-center font-black uppercase text-[8px]">Syncing Kernel Parameters...</div>
+            <div class="card overflow-hidden"><table class="w-full text-left"><thead class="bg-slate-50 border-b"><tr><th class="px-4 py-2">Parameter</th><th class="px-4 py-2 text-center">Current</th><th class="px-4 py-2 text-center">Recommended</th><th class="px-4 py-2 text-right">Status</th></tr></thead><tbody id="tune-table" class="divide-y divide-slate-100 font-mono text-[9px]"></tbody></table></div>
+        </div>
+
+        <div id="tab-config" class="tab-content">
+            <div class="max-w-4xl mx-auto space-y-4 pb-12">
+                <div class="card p-4 border-t-4 border-[#F2A900]">
+                    <h3 class="text-[9px] font-black uppercase text-[#004D60] mb-3">General Node Settings</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[7px] font-bold text-slate-400 uppercase">Customer Label</label><input id="cfg-name" class="w-full p-2 bg-slate-50 border rounded font-bold"></div>
+                        <div><label class="block text-[7px] font-bold text-slate-400 uppercase">RAM Threshold (GB)</label><input id="cfg-ram" type="number" step="0.1" class="w-full p-2 bg-slate-50 border rounded font-bold"></div>
+                    </div>
+                </div>
+                <div class="card p-4">
+                    <div class="flex justify-between items-center mb-3"><h3 class="text-[9px] font-black uppercase text-[#004D60]">Disk Monitoring (Partition & Threshold)</h3><button onclick="addPartitionRow()" class="bg-emerald-500 text-white px-2 py-1 rounded text-[8px] uppercase font-black">+ Add</button></div>
+                    <table class="w-full text-left text-[10px]"><thead><tr class="text-slate-400 uppercase text-[8px] border-b"><th class="pb-1">Path</th><th class="pb-1 text-right">Threshold %</th><th class="pb-1 text-right">Action</th></tr></thead><tbody id="cfg-partition-rows" class="divide-y divide-slate-100"></tbody></table>
+                </div>
+                <div class="card p-4">
+                    <h3 class="text-[9px] font-black uppercase text-[#004D60] mb-3">SMTP Alerting Relay</h3>
+                    <div class="grid grid-cols-3 gap-3 mb-3">
+                        <div class="col-span-2"><label class="text-[7px] font-bold text-slate-400 uppercase">Server Address</label><input id="cfg-smtp-srv" class="w-full p-1.5 bg-slate-50 border rounded"></div>
+                        <div><label class="text-[7px] font-bold text-slate-400 uppercase">Port</label><input id="cfg-smtp-port" type="number" class="w-full p-1.5 bg-slate-50 border rounded"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div><label class="text-[7px] font-bold text-slate-400 uppercase">Username</label><input id="cfg-smtp-user" class="w-full p-1.5 bg-slate-50 border rounded"></div>
+                        <div><label class="text-[7px] font-bold text-slate-400 uppercase">Pass/Token</label><input id="cfg-smtp-tok" type="password" class="w-full p-1.5 bg-slate-50 border rounded"></div>
+                    </div>
+                    <div class="mb-3"><label class="text-[7px] font-bold text-slate-400 uppercase">Recipients (Comma separated)</label><textarea id="cfg-smtp-rec" class="w-full p-1.5 bg-slate-50 border rounded h-12"></textarea></div>
+                    <div class="flex items-center gap-4"><div class="flex items-center gap-2 font-bold"><input id="cfg-smtp-tls" type="checkbox" class="w-4 h-4"><span>Use Secure TLS</span></div><div class="flex items-center gap-2 font-bold"><span>Cooldown (Hrs)</span><input id="cfg-smtp-cool" type="number" class="w-16 p-1 border rounded"></div></div>
+                </div>
+                <button onclick="saveFullConfig()" class="w-full bg-[#004D60] text-white p-3 rounded font-black uppercase text-[9px] tracking-widest shadow shadow-teal-900/40">Sync to Agent</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let agents = {}, activeId = null, curTab = "overview", curPath = "/";
+        let lastRegistryIds = "";
+        let pollState = 'running'; 
+        let pollInterval = 60000; 
+        let nextUpdate = Date.now();
+
+        async function poll() {
+            try {
+                // For local hosting, we use relative paths
+                const res = await fetch('/hub/agents'); if(!res.ok) return;
+                agents = await res.json(); renderRegistry();
+                if(activeId && agents[activeId]) {
+                    const a = agents[activeId];
+                    const now = Date.now() / 1000;
+                    const isOnline = (now - a.last_seen) < 15;
+                    document.getElementById('status-dot-header').className = `w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 status-pulse' : 'bg-slate-300'}`;
+                    if (pollState === 'running' && ['overview', 'info'].includes(curTab)) updateDashboard(a.stats);
+                    if(a.last_result) {
+                        const lr = a.last_result;
+                        if(lr.type === 'ls') renderFiles(lr.data);
+                        else if(lr.type === 'tune_results') { renderTune(lr.data); document.getElementById('tune-wait').classList.add('hidden'); }
+                        else if(lr.type === 'tune_apply' || lr.type === 'tune_revert') { sendTask('scan_tune'); }
+                        else if(lr.status === 'ok' && lr.type === 'rm') ls(curPath);
+                        fetch(`/hub/clear-result?agentId=${activeId}`);
+                    }
+                }
+            } catch(e){}
+        }
+
+        function renderRegistry() {
+            const ids = Object.keys(agents).sort((a,b) => {
+                const nameA = (agents[a].stats.customerName || a).toLowerCase();
+                const nameB = (agents[b].stats.customerName || b).toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+            const stateString = ids.map(id => id + (agents[id].stats.customerName || "")).join("|");
+            if (stateString !== lastRegistryIds) {
+                const list = document.getElementById('registry-list'); list.innerHTML = "";
+                ids.forEach(id => {
+                    const act = id === activeId;
+                    list.innerHTML += `<div onclick="selectAgent('${id}')" data-agent-id="${id}" class="agent-row p-2 rounded cursor-pointer transition-all flex items-center justify-between mb-1 ${act ? 'bg-[#F2A900] text-[#004D60] font-bold shadow-sm' : 'hover:bg-teal-700/50 text-teal-100'}">
+                        <span class="truncate font-black uppercase text-[10px]">${agents[id].stats.customerName || id}</span>
+                        <span class="status-dot w-1.5 h-1.5 rounded-full"></span>
+                    </div>`;
+                });
+                lastRegistryIds = stateString;
+            }
+            updateRegistryDots();
+        }
+
+        function updateRegistryDots() {
+            const now = Date.now() / 1000;
+            Object.keys(agents).forEach(id => {
+                const row = document.querySelector(`.agent-row[data-agent-id="${id}"]`);
+                if (row) {
+                    const dot = row.querySelector('.status-dot');
+                    const isOnline = (now - agents[id].last_seen) < 15;
+                    dot.className = `status-dot w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 status-pulse' : 'bg-slate-500'}`;
+                    row.classList.toggle('bg-[#F2A900]', id === activeId);
+                    row.classList.toggle('text-[#004D60]', id === activeId);
+                }
+            });
+        }
+
+        function selectAgent(id) {
+            activeId = id; document.getElementById('placeholder-view').classList.add('hidden');
+            document.getElementById('agent-header').classList.remove('hidden');
+            document.getElementById('srv-name').innerText = agents[id].stats.customerName || id;
+            document.getElementById('srv-id').innerText = `ID: ${id}`;
+            prefillConfig(agents[id].config); renderRegistry(); switchSubTab(curTab);
+            if (pollState !== 'stopped') nextUpdate = Date.now();
+        }
+
+        function updateDashboard(d) {
+            document.getElementById('stat-mem').innerText = (d.memoryFree || 0) + " GB";
+            document.getElementById('stat-swap').innerText = (d.swapUsagePct || 0) + "%";
+            document.getElementById('stat-oom').innerText = d.oomDetected ? "ALARM" : "STABLE";
+            document.getElementById('stat-oom').className = d.oomDetected ? "text-xs font-black text-red-500" : "text-xs font-black text-emerald-500";
+            const dList = document.getElementById('overview-disks'); dList.innerHTML = "";
+            (d.diskStats || []).forEach(disk => {
+                const color = disk.usage_pct > 85 ? 'bg-red-500' : 'bg-emerald-500';
+                dList.innerHTML += `<div class="p-2 bg-slate-50 rounded border border-slate-100">
+                    <div class="flex justify-between mb-1 font-black text-[#004D60] text-[9px] uppercase"><span>${disk.path}</span><span>${disk.usage_pct}%</span></div>
+                    <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden"><div class="${color} h-full" style="width:${disk.usage_pct}%"></div></div>
+                </div>`;
+            });
+            const pTab = document.getElementById('proc-table'); pTab.innerHTML = "";
+            (d.topProcesses || []).forEach(p => {
+                pTab.innerHTML += `<tr><td class="px-4 py-1.5 text-slate-400">${p.pid}</td><td class="px-4 py-1.5">${p.name}</td><td class="px-4 py-1.5 text-center font-black text-[#004D60]">${p.memGB}</td><td class="px-4 py-1.5 text-right"><button onclick="sendTask('kill', {pid:${p.pid}}, 'Kill process ${p.pid}?')" class="text-red-500 font-bold uppercase text-[9px]">Kill</button></td></tr>`;
+            });
+            const info = d.serverInfo || {};
+            document.getElementById('info-stack').innerHTML = `<div class="flex justify-between border-b py-1"><span>SAP HANA</span> <span>${info['SAP HANA Version'] || 'N/A'}</span></div><div class="flex justify-between border-b py-1"><span>SAP Business One</span> <span class="text-emerald-600 font-black">${info['SAP Business One Version'] || 'N/A'}</span></div>`;
+            document.getElementById('info-cpu').innerHTML = `<div class="flex justify-between border-b py-1"><span>Threads</span> <span>${info['Total Threads'] || 'N/A'}</span></div>`;
+            const hctl = document.getElementById('info-hostnamectl'); hctl.innerHTML = "";
+            Object.keys(info).forEach(k => { if (!['SAP HANA Version', 'SAP Business One Version', 'Total Threads'].includes(k)) hctl.innerHTML += `<div class="card p-3 flex justify-between font-bold"><span>${k}:</span> <span class="text-slate-500">${info[k]}</span></div>`; });
+        }
+
+        function renderTune(data) {
+            const table = document.getElementById('tune-table'); table.innerHTML = "";
+            (data || []).forEach(r => {
+                const clr = r.status === 'OK' ? 'text-emerald-600' : 'text-orange-500';
+                table.innerHTML += `<tr class="hover:bg-slate-50"><td class="px-4 py-2 font-black">${r.param}</td><td class="px-4 py-2 text-center text-slate-400">${r.current}</td><td class="px-4 py-2 text-center font-black">${r.recommended}</td><td class="px-4 py-2 text-right font-black ${clr}">${r.status}</td></tr>`;
+            });
+        }
+
+        function prefillConfig(c) {
+            document.getElementById('cfg-name').value = c.customerName || "";
+            document.getElementById('cfg-ram').value = c.memoryThresholdGB || 2.0;
+            const e = c.email || {};
+            document.getElementById('cfg-smtp-srv').value = e.smtpServer || "";
+            document.getElementById('cfg-smtp-port').value = e.port || 587;
+            document.getElementById('cfg-smtp-user').value = e.username || "";
+            document.getElementById('cfg-smtp-tok').value = e.token || "";
+            document.getElementById('cfg-smtp-rec').value = e.recipients || "";
+            document.getElementById('cfg-smtp-tls').checked = e.useTLS !== false;
+            document.getElementById('cfg-smtp-cool').value = e.alertCooldownHours || 6;
+            const rows = document.getElementById('cfg-partition-rows'); rows.innerHTML = "";
+            (c.partitions || []).forEach(p => addPartitionRow(p.path, p.threshold));
+        }
+
+        function addPartitionRow(path='/', threshold=90) {
+            const tr = document.createElement('tr'); tr.className = "part-row";
+            tr.innerHTML = `<td class="py-1"><input class="p-path w-full bg-slate-50 px-1 font-mono" value="${path}"></td><td class="py-1 text-right"><input class="p-threshold w-12 text-center bg-slate-50 font-bold" type="number" value="${threshold}"></td><td class="py-1 text-right"><button onclick="this.closest('tr').remove()" class="text-red-500 font-black">X</button></td>`;
+            document.getElementById('cfg-partition-rows').appendChild(tr);
+        }
+
+        async function saveFullConfig() {
+            const parts = []; document.querySelectorAll('#cfg-partition-rows tr.part-row').forEach(r => { parts.push({ path: r.querySelector('.p-path').value, enabled: true, threshold: parseInt(r.querySelector('.p-threshold').value) || 90 }); });
+            const cfg = {
+                customerName: document.getElementById('cfg-name').value, memoryThresholdGB: parseFloat(document.getElementById('cfg-ram').value), partitions: parts,
+                email: { smtpServer: document.getElementById('cfg-smtp-srv').value, port: parseInt(document.getElementById('cfg-smtp-port').value), username: document.getElementById('cfg-smtp-user').value, token: document.getElementById('cfg-smtp-tok').value, recipients: document.getElementById('cfg-smtp-rec').value, useTLS: document.getElementById('cfg-smtp-tls').checked, alertCooldownHours: parseInt(document.getElementById('cfg-smtp-cool').value) }
+            };
+            await sendTask('set_config', cfg); alert("Configuration synced to Node.");
+        }
+
+        async function sendTask(type, args, confirmMsg) {
+            if(confirmMsg && !confirm(confirmMsg)) return;
+            // Use relative path for local hosting
+            await fetch('/hub/task', {method:'POST', body:JSON.stringify({agentId:activeId, type, args})});
+            if(['scan_tune', 'apply_tune', 'revert_tune'].includes(type)) document.getElementById('tune-wait').classList.remove('hidden');
+            poll(); 
+        }
+
+        function switchSubTab(id) { curTab = id; document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 'tab-btn-'+id)); document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tab-'+id)); if(id === 'files') ls(curPath); if(id === 'tune') sendTask('scan_tune'); }
+        function ls(p) { curPath = p; document.getElementById('current-path').value = p; sendTask('ls', {path:p}); }
+        function navigateUp() { let p = curPath.split("/").filter(x=>x); p.pop(); ls("/" + (p.join("/") || "/")); }
+        
+        function renderFiles(data) {
+            const fTab = document.getElementById('file-table'); fTab.innerHTML = "";
+            (data || []).forEach(f => {
+                const icon = f.type === 'dir' 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2 text-amber-500"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg>` 
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2 text-slate-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+                
+                fTab.innerHTML += `<tr class="hover:bg-slate-100 cursor-pointer" onclick="${f.type==='dir' ? `ls('${f.full_path}')` : ''}">
+                    <td class="px-4 py-2 font-bold text-slate-700">${icon} ${f.name}</td>
+                    <td class="px-4 py-2 text-right text-[8px] text-slate-400 font-black">${f.size}</td>
+                    <td class="px-4 py-2 text-right">
+                        <button onclick="event.stopPropagation(); sendTask('rm', {path:'${f.full_path}'}, 'Delete?')" class="text-red-400 font-black text-[9px]">DEL</button>
+                    </td>
+                </tr>`;
+            });
+        }
+        
+        function startPolling() { const tick = () => { const now = Date.now(); if (pollState === 'running') { const diff = Math.max(0, Math.ceil((nextUpdate - now) / 1000)); document.getElementById('poll-countdown').innerText = diff > 0 ? `${diff}s` : "SYNC"; if (now >= nextUpdate) { poll(); nextUpdate = now + pollInterval; } } else { poll(); } setTimeout(tick, 1000); }; tick(); }
+        startPolling();
+        function setPollState(s) { pollState = s; if(s==='running') nextUpdate = Date.now(); }
+        function updatePollInterval() { pollInterval = parseInt(document.getElementById('poll-interval').value); nextUpdate = Date.now(); }
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

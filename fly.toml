@@ -1,0 +1,19 @@
+
+app = "app-restless-resonance-8206"
+primary_region = "iad" # Assuming 'iad' from your error trace
+
+# Remove the [build] section with builder and buildpacks to ensure Dockerfile is used
+# [build]
+#   builder = "paketobuildpacks/build-اتها:base"
+#   buildpacks = ["gcr.io/paketo-buildpacks/python"]
+
+[env]
+  PORT = "9090"
+
+[http_service]
+  internal_port = 9090
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
